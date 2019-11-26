@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "ex": "tsc && node ./dist/out-tsc/test.js",
+    "ex": "tsc && node ./dist/out-tsc/src/run_checks.js",
     "test": "ts-node node_modules/jasmine/bin/jasmine --config=jasmine.json"
   },
   "private": true,
