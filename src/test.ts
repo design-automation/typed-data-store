@@ -1,6 +1,6 @@
 import { Uint32Arr1 } from './arrays';
 
-const a: Uint32Arr1 = new Uint32Arr1(12);
+export const a: Uint32Arr1 = new Uint32Arr1(12);
 a.set(0, 123);
 a.set(1, 0);
 a.set(3, 456);
