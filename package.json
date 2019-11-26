@@ -1,0 +1,31 @@
+{
+  "name": "types-data-store",
+  "version": "0.0.1",
+  "license": "MIT",
+  "scripts": {
+    "ex": "tsc && node ./dist/out-tsc/test.js"
+  },
+  "private": true,
+  "dependencies": {
+    "npm": "^6.9.0",
+    "underscore": "^1.9.1"
+  },
+  "devDependencies": {
+    "@types/jasmine": "^2.8.16",
+    "@types/jasminewd2": "^2.0.6",
+    "@types/node": "^9.6.48",
+    "git-describe": "^4.0.4",
+    "jasmine-core": "^3.4.0",
+    "jasmine-spec-reporter": "^4.2.1",
+    "karma": "^4.1.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-cli": "^2.0.0",
+    "karma-coverage-istanbul-reporter": "^2.0.5",
+    "karma-jasmine": "^2.0.1",
+    "karma-jasmine-html-reporter": "^1.4.2",
+    "ts-node": "^6.0.1",
+    "tslint": "^5.20.1",
+    "typedoc": "^0.15.0",
+    "typescript": "^3.1.6"
+  }
+}
