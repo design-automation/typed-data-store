@@ -46,6 +46,8 @@ export class Uint32ArrD2Reg {
      * Convert a normal external arr to the internal arr representation
      * All values get incremented by 1
      * All undefined values or null values get replaced by 0
+     * @param arr
+     * @param idx0
      */
     private _arrExtToInt(arr: number[], idx0: number): void {
         const idx2: number = (idx0 * this._size);
@@ -59,6 +61,8 @@ export class Uint32ArrD2Reg {
      * Convert an internal representation to a normal external arr
      * All values get decrementd by 1
      * All 0 values get replaced by undefined (i.e. no value, as in a sparse array)
+     * If a sub array is all undefined, then the array itself is undefined
+     * @param idx0
      */
     private _arrIntToExt(idx0: number): number[] {
         const idx2: number = (idx0 * this._size);
@@ -69,7 +73,6 @@ export class Uint32ArrD2Reg {
             const val: number = this._view[idx2 + i];
             if (val !== 0) { arr[i] = val - 1; all_undef = false; }
         }
-        // return the value
         if (all_undef) { return undefined; }
         return arr;
     }
@@ -81,15 +84,16 @@ export class Uint32ArrD2Reg {
      * @param val
      */
     public setVal(idx0: number, idx1: number, val: number): void {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
-        if (idx0 >= this._len_arrs) {
-            this.setArr(idx0, []);
-        }
         idx1 = idx1 < 0 ? this._size - idx1 : idx1;
+        // update length
+        if (idx0 >= this._len_arrs) { this._len_arrs = idx0 + 1; }
+        // out of bounds
         if (idx1 >= this._size) { throw new Error('Error: Index 1 out of bounds.'); }
         // calc index
         const idx2: number = (idx0 * this._size) + idx1;
-        // check if we need to extend
+        // extend
         if (idx2 >= this._buff_num_ints - 1) { this._extend(); }
         // set the value
         this._view[idx2] = val + 1;
@@ -101,27 +105,28 @@ export class Uint32ArrD2Reg {
      * @param arr An array of length size.
      */
     public setArr(idx0: number, arr: number[]): void {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
-        // check if we need to extend
+        // extend
         if (idx0 >= this._buff_num_arrs - 1) { this._extend(); }
         // set the values
         this._arrExtToInt(arr, idx0);
-        // update lengths
-        if (this._len_arrs <= idx0) {
-            this._len_arrs = idx0 + 1;
-        }
+        // update length
+        if (this._len_arrs <= idx0) { this._len_arrs = idx0 + 1; }
     }
     /**
      * Gets a value from the array of arrays.
      * val = data[idx0][idx1]
      * @param idx0
      * @param idx1
+     * @returns The value
      */
     public getVal(idx0: number, idx1: number): number {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
-        // check if we are out of bounds
-        if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
         idx1 = idx1 < 0 ? this._size - idx1 : idx1;
+        // out of bounds
+        if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
         if (idx1 >= this._size) { throw new Error('Error: Index 1 out of bounds.'); }
         // calc index
         const idx2: number = (idx0 * this._size) + idx1;
@@ -134,36 +139,42 @@ export class Uint32ArrD2Reg {
      * Gets an arrays from the array of arrays.
      * val = data[idx0]
      * @param idx0
+     * @returns The array
      */
     public getArr(idx0: number): number[] {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
+        // out of bounds
         if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
-        // create the arr to be returned
+        // return the array
         return this._arrIntToExt(idx0);
     }
     /**
      * Pushes an array onto the end of the array of arrays,
      * and returns the length of the array.
-     * @param value
+     * @param arr
+     * @returns The length
      */
     public pushArr(arr: number[]): number {
         // extend
         if (this._len_arrs >= this._buff_num_arrs) { this._extend(); }
         // add the array
         this._arrExtToInt(arr, this._len_arrs);
-        // update lengths
+        // update length
         this._len_arrs += 1;
-        // return the num arrays
+        // return length
         return this._len_arrs;
     }
     /**
-     * Splices arrays into an array of array. Works same as normal array splice.
+     * Splices arrays into the array of array. Works same as normal array splice.
      * @param idx0 The index at which to splice
-     * @param del_count The number of items to delete
+     * @param del_count The number of arrays to delete
      * @param arrs_to_add An array of arrays to add
      */
     public spliceArrs(idx0: number, del_count: number, arrs_to_add?: number[][]): void {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
+        // out of bounds
         if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
         // arrays to add
         arrs_to_add = arrs_to_add === undefined ? [] : arrs_to_add;
@@ -183,46 +194,50 @@ export class Uint32ArrD2Reg {
             const idx0_next = idx0 + i;
             this._arrExtToInt(arrs_to_add[i], idx0_next);
         }
-        // if arr copied left, fill in with 0 values
+        // if arr copied left, fill end in with 0 values
         if (add_count < del_count) {
             let j = 0; const j_max = (del_count - add_count) * this._size;
             for (; j < j_max; j++ ) {
                 this._view[len_ints - j] = 0;
             }
         }
-        // update lengths
+        // update length
         this._len_arrs += (add_count - del_count);
     }
     /**
-     * Deletes an index in an array in the array.
-     * @param idx
+     * Deletes a value at the specified index in the array of arrays.
+     * @param idx0
+     * @param idx1
      */
     public deleteVal(idx0: number, idx1: number): void {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
-        if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
         idx1 = idx1 < 0 ? this._size - idx1 : idx1;
+        // ou of bounds
+        if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
         if (idx1 >= this._size) { throw new Error('Error: Index 1 out of bounds.'); }
         // calc index
         const idx2: number = (idx0 * this._size) + idx1;
-        // set the value
+        // set the value to 0
         this._view[idx2] = 0;
     }
     /**
-     * Deletes an array in the array.
-     * @param idx
+     * Deletes an array in the array of arrays.
+     * @param idx0
      */
     public deleteArr(idx0: number): void {
+        // neg index
         idx0 = idx0 < 0 ? this._len_arrs - idx0 : idx0;
+        // ou of bounds
+        if (idx0 >= this._len_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
         // calc index
         const idx2: number = (idx0 * this._size);
-        // check if we need to extend
-        if (idx2 >= this._buff_num_ints - 1) { this._extend(); }
-        // set the values
+        // set the values to 0
         let i = 0; const i_max = this._size;
         for (; i < i_max; i++) {
             this._view[idx2 + i] = 0;
         }
-        // update lengths
+        // update lengths TODO
         if (this._len_arrs === idx0 - 1) {
             i = this._len_arrs * this._size;
             this._len_arrs = 0;
@@ -235,8 +250,31 @@ export class Uint32ArrD2Reg {
         }
     }
     /**
-     * Returns a standard array of arrays.
-     * @param idx
+     * Returns the number of arrays in the array of arrays.
+     * @returns The length.
+     */
+    public length(): number {
+        return this._len_arrs;
+    }
+    /**
+     * Returns true if the array exists in the array of arrays.
+     * @param arr
+     * @returns True or false.
+     */
+    public includesArr(arr: number[]): boolean {
+        throw new Error('not implemented');
+    }
+    /**
+     * Returns the index of the first matching array in teh array of arrays, or -1.
+     * @param arr
+     * @returns The index.
+     */
+    public indexOfArr(arr: number[]): number {
+        throw new Error('not implemented');
+    }
+    /**
+     * Returns a standard array of arrays representation.
+     * @returns The array of arrays.
      */
     public toArray(): number[][] {
         const arrs: number[][] = [];
@@ -247,31 +285,10 @@ export class Uint32ArrD2Reg {
         return arrs;
     }
     /**
-     * Returns a string representation of an array of array.
-     * @param idx
+     * Returns a string representation of the array of arrays.
+     * @returns The string representation.
      */
     public toString(): string {
         return JSON.stringify(this.toArray());
-    }
-    /**
-     * Returns the length of the array.
-     * @param idx
-     */
-    public length(): number {
-        return this._len_arrs;
-    }
-    /**
-     * Returns true if the number exists in the array.
-     * @param idx
-     */
-    public includes(num: number): boolean {
-        throw new Error('not implemented');
-    }
-    /**
-     * Returns the index of the first item in the array with this value, or -1.
-     * @param idx
-     */
-    public indexOf(num: number): number {
-        throw new Error('not implemented');
     }
 }

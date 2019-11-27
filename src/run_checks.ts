@@ -1,9 +1,9 @@
-import { UInt32ArrD1 } from './UInt32ArrD1';
+import { Uint32ArrD1 } from './Uint32ArrD1';
 import { Uint32ArrD2Reg } from './Uint32ArrD2Reg';
 
 function testUint32ArrD1() {
 
-    const a: UInt32ArrD1 = new UInt32ArrD1(12);
+    const a: Uint32ArrD1 = new Uint32ArrD1(12);
 
     a.setVal(0, 123);
     a.setVal(1, 0);

@@ -3,7 +3,7 @@
  * Example: [2,3,undefined,5,undefined,6]
  * Supports Python-style negative indexes.
  */
-export class UInt32ArrD1 {
+export class Uint32ArrD1 {
     private _buff_num_bytes = 0;
     private _buff_num_ints = 0;
     private _buff: ArrayBuffer = null;
