@@ -10,7 +10,7 @@ export class Uint32ArrD1 {
     private _view: Uint32Array = null;
     private _len_ints: number = null;
     /**
-     * 
+     *
      * @param num_ints
      */
     public constructor(num_ints?: number) {
