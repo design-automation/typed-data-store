@@ -8,7 +8,7 @@ const MAX_SUB_ARRAY_LEN = 10;
 
 function testA() {
     const start = new Date().getTime();
-    const a = new Uint32ArrD2Irreg(16);
+    const a = new Uint32ArrD2Irreg();
     for (let i = 0; i < ITERATIONS; i++) {
         // set
         const idx0 = randInt(MAX_ARRAY_LEN);

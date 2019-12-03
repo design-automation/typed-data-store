@@ -9,7 +9,7 @@ const ITERATIONS = 10;
 const MAX_ARRAY_LEN = 10;
 
 function testA() {
-    const a = new Uint32ArrD2Irreg(10);
+    const a = new Uint32ArrD2Irreg();
     for (let i = 0; i < ITERATIONS; i++) {
         console.log('ITERATION', i);
         // set
@@ -20,7 +20,7 @@ function testA() {
 }
 // testA();
 
-const b = new Uint32ArrD2Irreg(16);
-b.setArr(5000, [1, 2, 3, 4, 5]);
-b.setArr(10000, [111, 222, 333, 444, 555]);
-console.log(b.toDebugStr(12));
+const a = new Uint32ArrD2Irreg();
+a.setArr(1, [11, 22, 33]);
+a.insVal(1, 0, 555);
+console.log(a.toDebugStr(12));
