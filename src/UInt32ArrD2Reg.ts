@@ -1,286 +1,346 @@
 /**
- * A sparse array of regular arrays of ints.
- * Example: [[2,3,4], undefined ,[3,undefined,5],[4,5,6]]
- * Supports Python-style negative indexes.
+ * A sparse array of regular arrays of unsigned ints.
+ * The arrays will be referred to as the 'container array' and the 'sub-arrays'.
+ *
+ * The array can contain undefined sub-arrays.
+ * The sub-arrays can contain neither undefined nor null values.
+ * `[undef, [1,2,3], [11,12,13], [22, 33, 44], undef]`
  */
 export class Uint32ArrD2Reg {
-    private _size: number = null;
-    private _buff_cap_bytes: number = null;
-    private _buff_cap_ints: number = null;
-    private _buff_cap_arrs: number = null;
-    private _buff: ArrayBuffer = null;
-    private _view: Uint32Array = null;
-    private _num_arrs: number = null;
+    // static
+    private static BUFF_START_SIZE = 1024;
+    private static BUFF_STEP_SIZE = 1024;
+    // data array
+    private _data_view: Uint32Array = null;
+    // total number of sub-arrays
+    private _arr_len: number = null;
+    // size of sub-arrays
+    private _sub_arr_len = null;
+
     /**
      * Constructor
-     * @param size The size of each sub array
-     * @param cap_ints The total size of the initial buffer, specified in number of ints
+     * @param size The size of the sub arrays.
      */
-    public constructor(size: number, cap_ints?: number) {
-        this._size = size;
-        this._buff_cap_arrs = cap_ints === undefined ? size * 3000 : Math.floor(cap_ints / size);
-        this._buff_cap_bytes = this._buff_cap_arrs * 4 * size;
-        this._buff_cap_ints = this._buff_cap_arrs * size;
-        this._buff = new ArrayBuffer(this._buff_cap_bytes);
-        this._view = new Uint32Array(this._buff);
-        this._num_arrs = 0;
+    public constructor(size: number) {
+        // data array
+        this._data_view = new Uint32Array(
+            new ArrayBuffer(Uint32ArrD2Reg.BUFF_START_SIZE * Uint32Array.BYTES_PER_ELEMENT)
+        );
+        // arrs and ints
+        this._arr_len = 0;
+        // size of sub arrays
+        this._sub_arr_len = size;
+    }
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // Private methods
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    /**
+     * Increases the size of the data buffer if the number of ints to add connot be accomodated.
+     */
+    private _extendDataBuff(ints_to_add: number): void {
+        if ((this._arr_len * this._sub_arr_len) + ints_to_add <= this._data_view.length) { return; }
+        // console.log('XXX EXTEND DATA BUFF XXX');
+        const new_num_vals: number = this._data_view.length +
+            Math.ceil(ints_to_add / Uint32ArrD2Reg.BUFF_STEP_SIZE) * Uint32ArrD2Reg.BUFF_STEP_SIZE;
+        // data
+        const new_data_view: Uint32Array = new Uint32Array(
+            new ArrayBuffer(new_num_vals * Uint32Array.BYTES_PER_ELEMENT)
+        );
+        new_data_view.set(this._data_view);
+        this._data_view = new_data_view;
     }
     /**
-     * Increases the size of the buffer.
+     * Shifts the data in the data array and updates the indexes in the index array.
+     * The shift can be positive or negative.
+     * Beware, when you shift negatively, you overwrite data.
      */
-    private _extend(): void {
-        const extend_by_num_arrs = 10000; // 40 kb
-        const new_num_arrs: number = this._buff_cap_arrs + extend_by_num_arrs;
-        const new_num_ints: number = this._buff_cap_ints + (extend_by_num_arrs * this._size);
-        const new_num_bytes: number = this._buff_cap_bytes + (extend_by_num_arrs * 4 * this._size);
-        const new_buff: ArrayBuffer = new ArrayBuffer(new_num_bytes);
-        const new_view: Uint32Array = new Uint32Array(new_buff);
-        new_view.set(this._view);
-        this._buff_cap_bytes = new_num_bytes;
-        this._buff_cap_ints = new_num_ints;
-        this._buff_cap_arrs = new_num_arrs;
-        this._buff = new_buff;
-        this._view = new_view;
+    private _shiftData(idx0: number, offset: number): void {
+        this._data_view.copyWithin((idx0 * this._sub_arr_len) + offset, (idx0 * this._sub_arr_len), (this._arr_len * this._sub_arr_len));
     }
     /**
-     * Convert a normal external arr to the internal arr representation
-     * All values get incremented by 1
-     * All undefined values or null values get replaced by 0
-     * @param arr
-     * @param idx0
+     * Set a sub-array to be undefined.
      */
-    private _arrExtToInt(arr: number[], idx0: number): void {
-        const idx2: number = (idx0 * this._size);
-        let i = 0; const i_max = this._size;
-        for (; i < i_max; i++) {
-            const val: number = arr[i] === undefined || arr[i] === null ? 0 : arr[i] + 1;
-            this._view[idx2 + i] = val;
+    private _arrSetUndef(idx0: number): void {
+        this._data_view[idx0 * this._sub_arr_len] = 0;
+    }
+    /**
+     * Set sub-array data.
+     */
+    private _arrSetData(idx0: number, arr: number[]): void {
+        if (arr === undefined) {
+            this._data_view[idx0 * this._sub_arr_len] = 0;
+        } else {
+            this._data_view.set(arr.map(i => i + 1), (idx0 * this._sub_arr_len));
         }
     }
     /**
-     * Convert an internal representation to a normal external arr
-     * All values get decrementd by 1
-     * All 0 values get replaced by undefined (i.e. no value, as in a sparse array)
-     * If a sub array is all undefined, then the array itself is undefined
-     * @param idx0
+     * Get sub-array data.
      */
-    private _arrIntToExt(idx0: number): number[] {
-        const idx2: number = (idx0 * this._size);
+    private _arrGetData(idx0: number): number[] {
+        const idx2: number = idx0 * this._sub_arr_len;
+        if (this._data_view[idx2] === 0) {
+            return undefined;
+        }
         const arr: number[] = [];
-        let i = 0; const i_max = this._size;
-        let all_undef = true;
-        for (; i < i_max; i++) {
-            const val: number = this._view[idx2 + i];
-            if (val !== 0) { arr[i] = val - 1; all_undef = false; }
+        for (let i = 0; i < this._sub_arr_len; i++) {
+            arr[i] = this._data_view[idx2 + i] - 1;
         }
-        if (all_undef) { return undefined; }
         return arr;
     }
     /**
-     * Sets a value in the array of arrays.
-     * data[idx0][idx1] = val
-     * @param idx0
-     * @param idx1
-     * @param val
+     * Set a value in a sub-array.
      */
-    public setVal(idx0: number, idx1: number, val: number): void {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        idx1 = idx1 < 0 ? this._size - idx1 : idx1;
-        // update length
-        if (idx0 >= this._num_arrs) { this._num_arrs = idx0 + 1; }
-        // out of bounds
-        if (idx1 >= this._size) { throw new Error('Error: Index 1 out of bounds.'); }
-        // calc index
-        const idx2: number = (idx0 * this._size) + idx1;
-        // extend
-        if (idx2 >= this._buff_cap_ints - 1) { this._extend(); }
-        // set the value
-        this._view[idx2] = val + 1;
+    private _arrSetVal(idx0: number, idx1: number, val: number): void {
+        this._data_view[(idx0 * this._sub_arr_len) + idx1] = val + 1;
     }
     /**
-     * Sets an array in the array of arrays.
-     * data[idx0] = [ ... ]
-     * @param idx0
-     * @param arr An array of length size.
+     * Get a value in a sub-array.
      */
-    public setArr(idx0: number, arr: number[]): void {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        // extend
-        if (idx0 >= this._buff_cap_arrs - 1) { this._extend(); }
-        // set the values
-        this._arrExtToInt(arr, idx0);
-        // update length
-        if (this._num_arrs <= idx0) { this._num_arrs = idx0 + 1; }
+    private _arrGetVal(idx0: number, idx1: number): number {
+        return this._data_view[(idx0 * this._sub_arr_len) + idx1] - 1;
     }
+    /**
+     * Return true if this sub-array is the last one.
+     */
+    private _isArrLast(idx0: number): boolean {
+        return idx0 === this._arr_len - 1;
+    }
+    /**
+     * Sets an array that is beyond the end of the container array
+     */
+    private _setArrExtend(idx0: number, arr: number[]): void {
+        // add empty arrs
+        const num_arrs_to_add: number = idx0 - this._arr_len + 1;
+        // extend data buff, adding space for all emp_arrs_to_add
+        const num_vals_to_add: number = num_arrs_to_add * this._sub_arr_len;
+        this._extendDataBuff(num_vals_to_add);
+        // set the data
+        this._arrSetData(idx0, arr);
+        // update _num_arrs
+        this._arr_len += num_arrs_to_add;
+    }
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // Public methods - for working with Sub-Arrays
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    /**
+     * Gets the data for a sub-array.
+     * @param idx0
+     * @returns The array of ints
+     */
+    public getArr(idx0: number): number[] {
+        if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
+        // console.log("GET")
+        // return arr of data
+        return this._arrGetData(idx0);
+    }
+    /**
+     * Sets the data for a sub-array.
+     * @param idx0
+     * @param arr The array of numbers, or undefined
+     */
+    public setArr(idx0: number, arr: number[]): number {
+        // console.log('SET');
+        if (arr !== undefined && arr.length !== this._sub_arr_len) { throw new Error('Array length is incorrect.'); }
+        // delete a sub array
+        if (arr === undefined && idx0 < this._arr_len) { this._arrSetUndef(idx0); return this._arr_len; }
+        // overwrite an existing arr
+        if (idx0 < this._arr_len) { this._arrSetData(idx0, arr); return this._arr_len; }
+        // extend by adding a new arr at or after _num_arrs
+        this._setArrExtend(idx0, arr);
+        return this._arr_len;
+    }
+    /**
+     * Inserts a sub-array.
+     * Insert at 0 inserts a sub-array at the start.
+     * Insert at _num_arrs inserts a sub-array at the end (same as push()).
+     * Everything from idx0 onwards (incl.) gets shifted to the right.
+     * @param idx0 The index at which to insert.
+     * @param arr
+     * @returns The length of the array after insertion
+     */
+    public insArr(idx0: number, arr: number[]): number {
+        // console.log("INSERT")
+        if (arr !== undefined && arr.length !== this._sub_arr_len) { throw new Error('Array length is incorrect.'); }
+        // special cases
+        if (idx0 > this._arr_len) { return this.setArr(idx0, arr); }
+        if (idx0 === this._arr_len) { return this.pushArr(arr); }
+        // extend data view
+        this._extendDataBuff(this._sub_arr_len);
+        // shift data
+        this._shiftData(idx0, this._sub_arr_len);
+        // update _num_arrs, add 1
+        this._arr_len += 1;
+        // set the new arr data
+        this._arrSetData(idx0, arr);
+        // return length
+        return this._arr_len;
+    }
+    /**
+     * Push a sub-array.
+     * @param arr
+     * @returns The length of the array after pushing.
+     */
+    public pushArr(arr: number[]): number {
+        // console.log("PUSH");
+        if (arr !== undefined && arr.length !== this._sub_arr_len) { throw new Error('Array length is incorrect.'); }
+        // set the next idx0
+        const idx0: number = this._arr_len;
+        // extend data view
+        this._extendDataBuff(this._sub_arr_len);
+        // update _num_arrs, add 1
+        this._arr_len += 1;
+        // set the new arr data
+        this._arrSetData(idx0, arr);
+        // return the new length
+        return this._arr_len;
+    }
+    /**
+     * Deletes a sub-array.
+     * The value for that sub-array becomes undefined.
+     * @param idx0 The index of the sub array to delete.
+     */
+    public delArr(idx0: number): void {
+        if (idx0 >= this._arr_len) { return; }
+        // console.log("DEL")
+        // set undefined
+        this._arrSetUndef(idx0);
+    }
+    /**
+     * Removes a sub-array.
+     * Everything after idx0 gets shifted to the left.
+     * @param idx0 The index of the sub array to delete.
+     */
+    public remArr(idx0: number): number {
+        if (idx0 >= this._arr_len) { return; }
+        // console.log("REM")
+        // special case
+        if (this._isArrLast(idx0)) { this.popArr(); return; }
+        // get end and next
+        const next_idx0 = idx0 + 1;
+        // shift data
+        this._shiftData(next_idx0, -this._sub_arr_len);
+        // update _num_arrs, deduct 1
+        this._arr_len -= 1;
+        // return length
+        return this._arr_len;
+    }
+    /**
+     * Deletes the last sub-array.
+     */
+    public popArr(): number[] {
+        // console.log("POP")
+        if (this._arr_len === 0) { return undefined; }
+        // get the arr to return
+        const arr: number[] = this.getArr(this._arr_len - 1);
+        // update _num_arrs
+        this._arr_len -= 1;
+        // return the arr
+        return arr;
+    }
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // Public methods - for working with values in sub-Arrays
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
     /**
      * Gets a value from the array of arrays.
-     * val = data[idx0][idx1]
+     * Similar to val = data[idx0][idx1]
      * @param idx0
      * @param idx1
      * @returns The value
      */
     public getVal(idx0: number, idx1: number): number {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        idx1 = idx1 < 0 ? this._size - idx1 : idx1;
-        // out of bounds
-        if (idx0 >= this._num_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
-        if (idx1 >= this._size) { throw new Error('Error: Index 1 out of bounds.'); }
-        // calc index
-        const idx2: number = (idx0 * this._size) + idx1;
-        // check if we need to return indefined
-        if (this._view[idx2] === 0) { return undefined; }
+        if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
+        if (idx1 >= this._sub_arr_len) { throw new Error('Error: Index 1 out of bounds.'); }
         // return the value
-        return this._view[idx2] - 1;
+        return this._arrGetVal(idx0, idx1);
     }
     /**
-     * Gets an arrays from the array of arrays.
-     * val = data[idx0]
-     * @param idx0
-     * @returns The array
-     */
-    public getArr(idx0: number): number[] {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        // out of bounds
-        if (idx0 >= this._num_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
-        // return the array
-        return this._arrIntToExt(idx0);
-    }
-    /**
-     * Pushes an array onto the end of the array of arrays,
-     * and returns the length of the array.
-     * @param arr
-     * @returns The length
-     */
-    public pushArr(arr: number[]): number {
-        // extend
-        if (this._num_arrs >= this._buff_cap_arrs) { this._extend(); }
-        // add the array
-        this._arrExtToInt(arr, this._num_arrs);
-        // update length
-        this._num_arrs += 1;
-        // return length
-        return this._num_arrs;
-    }
-    /**
-     * Splices arrays into the array of array. Works same as normal array splice.
-     * @param idx0 The index at which to splice
-     * @param del_count The number of arrays to delete
-     * @param arrs_to_add An array of arrays to add
-     */
-    public spliceArrs(idx0: number, del_count: number, arrs_to_add?: number[][]): void {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        // out of bounds
-        if (idx0 >= this._num_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
-        // arrays to add
-        arrs_to_add = arrs_to_add === undefined ? [] : arrs_to_add;
-        const add_count: number = arrs_to_add.length;
-        // extend
-        if ((idx0 + add_count - del_count) >= this._buff_cap_arrs) { this._extend(); }
-        // splice
-        const len_ints: number = this._num_arrs * this._size;
-        if (del_count !== add_count) {
-            this._view.copyWithin(
-                (idx0 + add_count) * this._size,
-                (idx0 + del_count) * this._size,
-                len_ints);
-        }
-        let i = 0; const i_max = add_count;
-        for (; i < i_max; i++) {
-            const idx0_next = idx0 + i;
-            this._arrExtToInt(arrs_to_add[i], idx0_next);
-        }
-        // if arr copied left, fill end in with 0 values
-        if (add_count < del_count) {
-            let j = 0; const j_max = (del_count - add_count) * this._size;
-            for (; j < j_max; j++ ) {
-                this._view[len_ints - j] = 0;
-            }
-        }
-        // update length
-        this._num_arrs += (add_count - del_count);
-    }
-    /**
-     * Deletes a value at the specified index in the array of arrays.
+     * Overwrites an existing value in a sub-array with a new value.
+     * Similar to data[idx0][idx1] = val
      * @param idx0
      * @param idx1
+     * @param val
      */
-    public delVal(idx0: number, idx1: number): void {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        idx1 = idx1 < 0 ? this._size - idx1 : idx1;
-        // ou of bounds
-        if (idx0 >= this._num_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
-        if (idx1 >= this._size) { throw new Error('Error: Index 1 out of bounds.'); }
-        // calc index
-        const idx2: number = (idx0 * this._size) + idx1;
-        // set the value to 0
-        this._view[idx2] = 0;
+    public setVal(idx0: number, idx1: number, val: number): void {
+        if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
+        if (idx1 >= this._sub_arr_len) { throw new Error('Error: Index 1 out of bounds.'); }
+        // set the value
+        this._arrSetVal(idx0, idx1, val);
     }
     /**
-     * Deletes an array in the array of arrays.
+     * If the existing value in a sub-array is a given value,
+     * then overwrite the existing value with a new value.
      * @param idx0
+     * @param idx1
+     * @param val
      */
-    public delArr(idx0: number): void {
-        // neg index
-        idx0 = idx0 < 0 ? this._num_arrs - idx0 : idx0;
-        // ou of bounds
-        if (idx0 >= this._num_arrs) { throw new Error('Error: Index 0 out of bounds.'); }
-        // calc index
-        const idx2: number = (idx0 * this._size);
-        // set the values to 0
-        let i = 0; const i_max = this._size;
-        for (; i < i_max; i++) {
-            this._view[idx2 + i] = 0;
-        }
-        // update lengths TODO
-        if (this._num_arrs === idx0 - 1) {
-            i = this._num_arrs * this._size;
-            this._num_arrs = 0;
-            for (; i >= 0; i --) {
-                if (this._view[i] !== 0) {
-                    this._num_arrs = Math.ceil(i / this._size);
-                    break;
-                }
-            }
-        }
+    public setValIf(idx0: number, idx1: number, old_val: number, new_val: number): void {
+        if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
+        if (idx1 >= this._sub_arr_len) { throw new Error('Error: Index 1 out of bounds.'); }
+        // set the value
+        if (this._arrGetVal(idx0, idx1) === old_val) { this._arrSetVal(idx0, idx1, new_val); }
     }
+    /**
+     * Returns true if the sub-array contains the number.
+     * @param idx0
+     * @param num
+     * @returns True or false.
+     */
+    public hasVal(idx0: number, num: number): boolean {
+        const idx2: number = (idx0 * this._sub_arr_len);
+        return this._data_view.subarray(idx2, idx2 + this._sub_arr_len).includes(num + 1);
+    }
+    /**
+     * Returns the index of the first matching number in the sub-array, or -1.
+     * @param idx0
+     * @param num
+     * @returns The index.
+     */
+    public idxOfVal(idx0: number, num: number): number {
+        const idx2: number = (idx0 * this._sub_arr_len);
+        return this._data_view.subarray(idx2, idx2 + this._sub_arr_len).indexOf(num + 1);
+    }
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
+    // Public methods - for working with the container array
+    // --------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
     /**
      * Returns the number of arrays in the array of arrays.
      * @returns The length.
      */
-    public length(): number {
-        return this._num_arrs;
-    }
-    /**
-     * Returns true if the array exists in the array of arrays.
-     * @param arr
-     * @returns True or false.
-     */
-    public includesArr(arr: number[]): boolean {
-        throw new Error('not implemented');
-    }
-    /**
-     * Returns the index of the first matching array in teh array of arrays, or -1.
-     * @param arr
-     * @returns The index.
-     */
-    public idxOfArr(arr: number[]): number {
-        throw new Error('not implemented');
+    public len(): number {
+        return this._arr_len;
     }
     /**
      * Returns a standard array of arrays representation.
      * @returns The array of arrays.
      */
-    public toArray(): number[][] {
+    public toArr(limit?: number, end?: boolean): number[][] {
+        limit = limit === undefined ? this._arr_len : limit;
         const arrs: number[][] = [];
-        let i = 0; const i_max = this._num_arrs;
-        for (; i < i_max; i++) {
-            arrs.push(this._arrIntToExt(i));
+        // get the whole thing
+        if (this._arr_len < limit) {
+            for (let next_idx0 = 0; next_idx0 < this._arr_len; next_idx0++) {
+                arrs.push(this._arrGetData(next_idx0));
+            }
+            return arrs;
+        }
+        // get the start
+        if (end === undefined || end === false) {
+            for (let next_idx0 = 0; next_idx0 < limit; next_idx0++) {
+                arrs.push(this._arrGetData(next_idx0));
+            }
+            return arrs;
+        }
+        // get the end
+        for (let next_idx0 = this._arr_len - limit; next_idx0 < this._arr_len; next_idx0++) {
+            arrs.push(this._arrGetData(next_idx0));
         }
         return arrs;
     }
@@ -288,7 +348,48 @@ export class Uint32ArrD2Reg {
      * Returns a string representation of the array of arrays.
      * @returns The string representation.
      */
-    public toString(): string {
-        return JSON.stringify(this.toArray());
+    public toStr(limit: number): string {
+        limit = limit === undefined ? 50 : limit;
+        // get the whole thing
+        if (this._arr_len < limit) {
+            return JSON.stringify(this.toArr());
+        }
+        // get the start and end
+        const half_limit: number = Math.ceil(limit / 2);
+        const start: number[][] = this.toArr(half_limit, false);
+        const end: number[][] = this.toArr(half_limit, true);
+        return JSON.stringify(start).slice(0, -1) +
+            ' ... ' + JSON.stringify(end).slice(1) + ']';
+    }
+    /**
+     * Returns a string representation of various types of data in the array.
+     * @returns The string representation.
+     */
+    public toDebugStr(limit?: number): string {
+        limit = limit === undefined ? 50 : limit;
+        // data
+        let data_arr_str = '';
+        if (this._arr_len < limit) {
+            // data
+            data_arr_str = '[' + this._data_view.subarray(0, (this._arr_len * this._sub_arr_len)) + ']';
+        } else {
+            const half_limit: number = Math.ceil(limit / 2);
+            const part2_start: number = this._arr_len - half_limit;
+            // data
+            data_arr_str =  '[' +
+                this._data_view.subarray(0, half_limit * this._sub_arr_len) + ' ... '  +
+                this._data_view.subarray(part2_start * this._sub_arr_len, (this._arr_len * this._sub_arr_len)) +
+            ']';
+        }
+        // return the str
+        return [
+            '==========',
+            'Num arrays = \t\t' + this._arr_len,
+            'Length data= \t\t' + (this._arr_len * this._sub_arr_len),
+            'Data buff size = \t' + this._data_view.length,
+            'Data array = \t\t' + data_arr_str,
+            'Nested array = \t\t' + this.toStr(limit),
+            '=========='
+        ].join('\n');
     }
 }
