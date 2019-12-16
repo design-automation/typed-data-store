@@ -2,9 +2,9 @@
  * A sparse array of regular arrays of unsigned ints.
  * The arrays will be referred to as the 'container array' and the 'sub-arrays'.
  *
- * The array can contain undefined sub-arrays.
- * The sub-arrays can contain neither undefined nor null values.
- * `[undef, [1,2,3], [11,12,13], [22, 33, 44], undef]`
+ * The array can contain undefined sub-arrays but not null.
+ * The sub-arrays can contain undefined or null values.
+ * `[undef, [1,2,3], [11,undefined,13], [22, null, 44], undef]`
  */
 export class Uint32ArrD2Reg {
     // static
@@ -67,39 +67,101 @@ export class Uint32ArrD2Reg {
     }
     /**
      * Set sub-array data.
+     * 0 = sub-array is undefined (for first item in array)
+     * 1 = item in sub-array is undefined
+     * 2 = item in sub-array is null
      */
     private _arrSetData(idx0: number, arr: number[]): void {
         if (arr === undefined) {
             this._data_view[idx0 * this._sub_arr_len] = 0;
         } else {
-            this._data_view.set(arr.map(i => i + 1), (idx0 * this._sub_arr_len));
+            const encoded_arr: number[] = [];
+            for (const val of arr) {
+                if (val === undefined) {
+                    encoded_arr.push(1);
+                } else if (val === null) {
+                    encoded_arr.push(2);
+                } else {
+                    encoded_arr.push(val + 3);
+                }
+            }
+            // set the data
+            this._data_view.set(encoded_arr, idx0 * this._sub_arr_len);
         }
     }
     /**
      * Get sub-array data.
+     * 0 = sub-array is undefined (for first item in array)
+     * 1 = item in sub-array is undefined
+     * 2 = item in sub-array is null
      */
     private _arrGetData(idx0: number): number[] {
         const idx2: number = idx0 * this._sub_arr_len;
         if (this._data_view[idx2] === 0) {
             return undefined;
         }
+        // create arr of data
         const arr: number[] = [];
         for (let i = 0; i < this._sub_arr_len; i++) {
-            arr[i] = this._data_view[idx2 + i] - 1;
+            const val: number = this._data_view[idx2 + i];
+            if (val === 1) {
+                arr.push(undefined);
+            } else if (val === 2) {
+                arr.push(null);
+            } else {
+                arr.push(val - 3);
+            }
         }
         return arr;
     }
     /**
      * Set a value in a sub-array.
+     * 0 = sub-array is undefined (for first item in array)
+     * 1 = item in sub-array is undefined
+     * 2 = item in sub-array is null
      */
     private _arrSetVal(idx0: number, idx1: number, val: number): void {
-        this._data_view[(idx0 * this._sub_arr_len) + idx1] = val + 1;
+        const idx2: number = (idx0 * this._sub_arr_len) + idx1;
+        if (val === undefined) {
+            this._data_view[idx2] = 1;
+        } else if (val === null) {
+            this._data_view[idx2] = 2;
+        } else {
+            this._data_view[idx2] = val + 3;
+        }
     }
     /**
      * Get a value in a sub-array.
+     * 0 = sub-array is undefined (for first item in array)
+     * 1 = item in sub-array is undefined
+     * 2 = item in sub-array is null
      */
     private _arrGetVal(idx0: number, idx1: number): number {
-        return this._data_view[(idx0 * this._sub_arr_len) + idx1] - 1;
+        const idx2: number = (idx0 * this._sub_arr_len) + idx1;
+        if (this._data_view[idx2] === 0) {
+            return undefined; // empty
+        } else if (this._data_view[idx2] === 1) {
+            return undefined;
+        } else if (this._data_view[idx2] === 2) {
+            return null;
+        } else {
+            return this._data_view[idx2] - 3;
+        }
+    }
+    /**
+     * Encode to internal representation.
+     * 0 = sub-array is undefined (for first item in array)
+     * 1 = item in sub-array is undefined
+     * 2 = item in sub-array is null
+     */
+    private _encodeVal(val: number): number {
+        if (val === undefined) {
+           return 1;
+        } else if (val === null) {
+            return 2;
+        } else {
+            return val + 3;
+        }
     }
     /**
      * Return true if this sub-array is the last one.
@@ -288,22 +350,24 @@ export class Uint32ArrD2Reg {
     /**
      * Returns true if the sub-array contains the number.
      * @param idx0
-     * @param num
+     * @param val
      * @returns True or false.
      */
-    public hasVal(idx0: number, num: number): boolean {
+    public hasVal(idx0: number, val: number): boolean {
         const idx2: number = (idx0 * this._sub_arr_len);
-        return this._data_view.subarray(idx2, idx2 + this._sub_arr_len).includes(num + 1);
+        const sub_arr: Uint32Array =  this._data_view.subarray(idx2, idx2 + this._sub_arr_len);
+        return sub_arr.includes( this._encodeVal(val) );
     }
     /**
      * Returns the index of the first matching number in the sub-array, or -1.
      * @param idx0
-     * @param num
+     * @param val
      * @returns The index.
      */
-    public idxOfVal(idx0: number, num: number): number {
+    public idxOfVal(idx0: number, val: number): number {
         const idx2: number = (idx0 * this._sub_arr_len);
-        return this._data_view.subarray(idx2, idx2 + this._sub_arr_len).indexOf(num + 1);
+        const sub_arr: Uint32Array =  this._data_view.subarray(idx2, idx2 + this._sub_arr_len);
+        return sub_arr.indexOf( this._encodeVal(val) );
     }
     // --------------------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------------------

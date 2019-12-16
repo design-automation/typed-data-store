@@ -1,7 +1,7 @@
 /**
  * A sparse array of unsigned ints.
  *
- * The array can contain undefined values.
+ * The array can contain undefined and null values.
  * `[undef, 1, 2, 3, undef]`
  */
 export class Uint32ArrD1 {
@@ -49,9 +49,11 @@ export class Uint32ArrD1 {
      */
     private _setVal(idx: number, val: number): void {
         if (val === undefined) {
-            this._data_view[idx] = 0;
+            this._data_view[idx] = 1;
+        } else if (val === null) {
+            this._data_view[idx] = 2;
         } else {
-            this._data_view[idx] = val + 1;
+            this._data_view[idx] = val + 3;
         }
     }
     /**
@@ -59,9 +61,25 @@ export class Uint32ArrD1 {
      */
     private _getVal(idx: number): number {
         if (this._data_view[idx] === 0) {
+            return undefined; // empty
+        } else if (this._data_view[idx] === 1) {
             return undefined;
+        } else if (this._data_view[idx] === 2) {
+            return null;
         } else {
-            return this._data_view[idx] - 1;
+            return this._data_view[idx] - 3;
+        }
+    }
+    /**
+     * Encode to internal representation.
+     */
+    private _encodeVal(val: number): number {
+        if (val === undefined) {
+           return 1;
+        } else if (val === null) {
+            return 2;
+        } else {
+            return val + 3;
         }
     }
     /**
@@ -77,12 +95,6 @@ export class Uint32ArrD1 {
      */
     private _isValLast(idx: number): boolean {
         return idx === this._arr_len - 1;
-    }
-    /**
-     * Return true if this array is undefined
-     */
-    private _isValUndef(idx: number): boolean {
-        return this._data_view[idx] === 0;
     }
     // --------------------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------------------
@@ -128,14 +140,8 @@ export class Uint32ArrD1 {
     public setValIf(idx: number, old_val: number, new_val: number): void {
         if (idx >= this._arr_len) { throw new Error('Error: Index out of bounds.'); }
         // set the value
-        if (old_val === undefined) {
-            if (this._data_view[idx] === 0) {
-                this._setVal(idx, new_val);
-            }
-        } else {
-            if (this._data_view[idx] === old_val + 1) {
-                this._setVal(idx, new_val);
-            }
+        if (this._data_view[idx] === this._encodeVal(old_val)) {
+            this._setVal(idx, new_val);
         }
     }
     /**
@@ -200,7 +206,7 @@ export class Uint32ArrD1 {
      */
     public popVal(): number {
         // get the val
-        const val: number = this._data_view[this._arr_len];
+        const val: number = this._getVal(this._arr_len - 1);
         // set the length
         this._arr_len -= 1;
         // return the value
@@ -212,8 +218,7 @@ export class Uint32ArrD1 {
      * @returns True or false.
      */
     public hasVal(val: number): boolean {
-        if (val === undefined) { return this._data_view.includes(0); }
-        return this._data_view.includes(val + 1);
+        return this._data_view.includes(this._encodeVal(val));
     }
     /**
      * Returns the index of the first matching number in the value, or -1.
@@ -221,8 +226,7 @@ export class Uint32ArrD1 {
      * @returns The index, or -1.
      */
     public idxOfVal(val: number): number {
-        if (val === undefined) { return this._data_view.indexOf(0); }
-        return this._data_view.indexOf(val + 1);
+        return this._data_view.indexOf(this._encodeVal(val));
     }
     // --------------------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------------------

@@ -48,7 +48,8 @@ describe('Uint32ArrD2Irreg', () => {
     it(': len() after popArr()', () => {
         const a = new Uint32ArrD2Irreg();
         a.setArr(2, [22]);
-        a.popArr();
+        const r = a.popArr();
+        expect(r).toEqual([22]);
         expect(a.len()).toEqual(2);
     });
 
@@ -66,7 +67,8 @@ describe('Uint32ArrD2Irreg', () => {
 
     it(': getArr()', () => {
         const a = new Uint32ArrD2Irreg();
-        a.setArr(2, [111, 222, 333, 444]);
+        const l = a.setArr(2, [111, 222, 333, 444]);
+        expect(l).toEqual(3);
         const b = a.getArr(2);
         expect(b).toEqual([111, 222, 333, 444]);
     });
@@ -87,7 +89,8 @@ describe('Uint32ArrD2Irreg', () => {
     it(': pushArr() onto nonempty array', () => {
         const a = new Uint32ArrD2Irreg();
         a.setArr(1, [2, 3]);
-        a.pushArr([111, 222, 333, 444]);
+        const l = a.pushArr([111, 222, 333, 444]);
+        expect(l).toEqual(3);
         expect(a.toArr()).toEqual([undefined, [2, 3], [111, 222, 333, 444]]);
     });
 

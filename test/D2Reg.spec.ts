@@ -12,7 +12,8 @@ describe('Uint32ArrD2Reg', () => {
 
     it(': setArr(), len 1', () => {
         const a = new Uint32ArrD2Reg(1);
-        a.setArr(2, [111]);
+        const l = a.setArr(2, [111]);
+        expect(l).toEqual(3);
         expect(a.len()).toEqual(3);
         expect(a.toArr()).toEqual([undefined, undefined, [111]]);
     });
@@ -105,7 +106,8 @@ describe('Uint32ArrD2Reg', () => {
     it(': insArr(), at start', () => {
         const a = new Uint32ArrD2Reg(3);
         a.setArr(1, [1, 2, 3]);
-        a.insArr(0, [111, 222, 333]);
+        const l = a.insArr(0, [111, 222, 333]);
+        expect(l).toEqual(3);
         expect(a.len()).toEqual(3);
         expect(a.toArr()).toEqual([[111, 222, 333], undefined, [1, 2, 3]]);
     });
@@ -210,7 +212,8 @@ describe('Uint32ArrD2Reg', () => {
         a.setArr(0, [1, 2, 3]);
         a.setArr(1, [4, 5, 6]);
         a.setArr(2, [7, 8, 9]);
-        a.popArr();
+        const r = a.popArr();
+        expect(r).toEqual([7, 8, 9]);
         expect(a.len()).toEqual(2);
         expect(a.toArr()).toEqual([ [1, 2, 3], [4, 5, 6] ]);
     });
@@ -234,6 +237,26 @@ describe('Uint32ArrD2Reg', () => {
         a.setVal(1, 1, 999);
         expect(a.len()).toEqual(3);
         expect(a.toArr()).toEqual([ [1, 2, 3], [4, 999, 6], [7, 8, 9] ]);
+    });
+
+    it(': setVal() undefined', () => {
+        const a = new Uint32ArrD2Reg(3);
+        a.setArr(0, [1, 2, 3]);
+        a.setArr(1, [4, 5, 6]);
+        a.setArr(2, [7, 8, 9]);
+        a.setVal(1, 1, undefined);
+        expect(a.len()).toEqual(3);
+        expect(a.toArr()).toEqual([ [1, 2, 3], [4, undefined, 6], [7, 8, 9] ]);
+    });
+
+    it(': setVal() null', () => {
+        const a = new Uint32ArrD2Reg(3);
+        a.setArr(0, [1, 2, 3]);
+        a.setArr(1, [4, 5, 6]);
+        a.setArr(2, [7, 8, 9]);
+        a.setVal(1, 1, null);
+        expect(a.len()).toEqual(3);
+        expect(a.toArr()).toEqual([ [1, 2, 3], [4, null, 6], [7, 8, 9] ]);
     });
 
     it(': getVal()', () => {

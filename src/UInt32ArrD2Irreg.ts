@@ -2,101 +2,100 @@
  * A sparse array of irregular arrays of unsigned ints.
  * The arrays will be referred to as the 'container array', and the 'sub-arrays'.
  *
- * The array can contain undefined sub-arrays, but not null values.
- * The sub-arrays cannot contain neither undefined nor null values.
- * `[undef, [], [11], [22, 33, 44], undef]`
+ * The array can contain undefined sub-arrays but not null.
+ * The sub-arrays can contain undefined or null values.
+ * `[undef, [], [11], [22, 33, 44, undefined, null], undef]`
  *
- * The nested array is represented by three flat arrays.
- * * _data_view contains the data items (ints) .
- * * _idx_view contains the start index of each sub-array.
- * * _len_view contains the length of each sub-array.
- *
- * # _data_view
- *
- * The data is stored in a UInt32 typed array. (Max is 4.2 billion.)
- *
- * This contains the actual values.
- *
- * # _idx_view
- *
- * The indexes are stored in a Uint32 typed array. (Max is 4.2 billion.)
- *
- * Each index indicates the start of each sub-array.
- *
- * There is an additional index at the end of the array.
- * This can be seen as one moroe dummy empty array at the end.
- * The value is equal to the length of the _data_view array.
- *
- * If the sub-array is undefined, the index indicate the location in the _data_view where the sub-array would be inserted.
- * So if the index was 3, it means that everything from 3 onwards (incl.) would get shifted to the right.
- * An undefined sub-array at the start of the _data_view array would have an index of 0.
- * An undefined sub-array at the end of the _data_view array would have an index equal to the _data_view array length.
- *
- * # _len_view
- *
- * The lengths are stored in a Uint16 typed array. (Max is 64 thousand.)
- *
- * A value of 0 indicates that the sub-array is undefine.
- *
- * There is an additional index at the end of the array. The value is set to 0.
- *
- * # Example - empty
- *
- * `nested = []`
- * `_data_view = []`
- * `_idx_view =  [0]`
- * `_len_view =  [0]`
- *
- * # Example - undef only
- *
- * `nested = [undef, undef]`
- * `_data_view = []`
- * `_idx_view =  [0, 0, 0]`
- * `_len_view =  [0, 0, 0]`
- *
- * # Example - some values
- *
- * `nested = [undef, [], [11], [22, 33, 44], undef]`
- * `_data_view = [0, 11, 22, 33, 44]`
- * `_idx_view =  [0, 0, 1, 2, 5, 5]`
- * `_len_view =  [0, 1, 2, 4, 0, 0]`
- *
- * # Sub-array padding in _data_view
- *
- * Shifting data ever time something is inserted or deleted reduces performance.
- * The _data_view has padding to reduce the number of times data needs to be shifted.
- * So if _padding is set to 2, then:
- *
- * `nested = [undef, [], [11], [22, 33, 44], undef]`
- * `_data_view = [11, 0, 0, 22, 33, 44, 0, 0]`
- * `_idx_view =  [0, 0, 0, 1, 4, 8]`
- * `_len_view =  [0, 1, 2, 4, 0, 0]`
- *
- * If a value is now pushed to nested[2], it fills the padding.
- * `nested.pushVal(2, 55)`
- * `nested = [undef, [], [11, 55], [22, 33, 44], undef]`
- * `_data_view = [11, 55, 0, 22, 33, 44, 0, 0]`
- * `_idx_view =  [0, 0, 0, 1, 4, 8]`
- * `_len_view =  [0, 1, 3, 4, 0, 0]`
- *
- * # Pushing in _data_view
- *
- * Pushing a value onto the end of a sub-array will overwrite padding.
- * If there is no more padding, then the sub-array length will be extended by adding padding.
- * This will result in all subsequent sub-arrays in _data_view being shifted to the right.
- *
- * # Deleting in _data_view
- *
- * Deleting a value in a sub-array will only shift the data in the sub-array.
- * Padding is added to the end of the sub-array.
- *
- * Deleting a whole sub-array will shift all subsequent sub-arrays in _data_view to the left.
- * The size of the shift is equal to the length of the sub-arry being deleted.
- * The index in _idx_view and _len_view are both set to 0.
- *
- *
- */
+ **/
 export class Uint32ArrD2Irreg {
+    //  The nested array is represented by three flat arrays.
+    //  * _data_view contains the data items (ints) .
+    //  * _idx_view contains the start index of each sub-array.
+    //  * _len_view contains the length of each sub-array.
+    //
+    //  # _data_view
+    //
+    //  The data is stored in a UInt32 typed array. (Max is 4.2 billion.)
+    //
+    //  This contains the actual values.
+    //
+    //  # _idx_view
+    //
+    //  The indexes are stored in a Uint32 typed array. (Max is 4.2 billion.)
+    //
+    //  Each index indicates the start of each sub-array.
+    //
+    //  There is an additional index at the end of the array.
+    //  This can be seen as one moroe dummy empty array at the end.
+    //  The value is equal to the length of the _data_view array.
+    //
+    //  If the sub-array is undefined, the index indicate the location in the _data_view where the sub-array would be inserted.
+    //  So if the index was 3, it means that everything from 3 onwards (incl.) would get shifted to the right.
+    //  An undefined sub-array at the start of the _data_view array would have an index of 0.
+    //  An undefined sub-array at the end of the _data_view array would have an index equal to the _data_view array length.
+    //
+    //  # _len_view
+    //
+    //  The lengths are stored in a Uint16 typed array. (Max is 64 thousand.)
+    //
+    //  A value of 0 indicates that the sub-array is undefine.
+    //
+    //  There is an additional index at the end of the array. The value is set to 0.
+    //
+    //  # Example - empty
+    //
+    //  `nested = []`
+    //  `_data_view = []`
+    //  `_idx_view =  [0]`
+    //  `_len_view =  [0]`
+    //
+    //  # Example - undef only
+    //
+    //  `nested = [undef, undef]`
+    //  `_data_view = []`
+    //  `_idx_view =  [0, 0, 0]`
+    //  `_len_view =  [0, 0, 0]`
+    //
+    //  # Example - some values
+    //
+    //  `nested = [undef, [], [11], [22, 33, 44], undef]`
+    //  `_data_view = [0, 11, 22, 33, 44]`
+    //  `_idx_view =  [0, 0, 1, 2, 5, 5]`
+    //  `_len_view =  [0, 1, 2, 4, 0, 0]`
+    //
+    //  # Sub-array padding in _data_view
+    //
+    //  Shifting data ever time something is inserted or deleted reduces performance.
+    //  The _data_view has padding to reduce the number of times data needs to be shifted.
+    //  So if _padding is set to 2, then:
+    //
+    //  `nested = [undef, [], [11], [22, 33, 44], undef]`
+    //  `_data_view = [11, 0, 0, 22, 33, 44, 0, 0]`
+    //  `_idx_view =  [0, 0, 0, 1, 4, 8]`
+    //  `_len_view =  [0, 1, 2, 4, 0, 0]`
+    //
+    //  If a value is now pushed to nested[2], it fills the padding.
+    //  `nested.pushVal(2, 55)`
+    //  `nested = [undef, [], [11, 55], [22, 33, 44], undef]`
+    //  `_data_view = [11, 55, 0, 22, 33, 44, 0, 0]`
+    //  `_idx_view =  [0, 0, 0, 1, 4, 8]`
+    //  `_len_view =  [0, 1, 3, 4, 0, 0]`
+    //
+    //  # Pushing in _data_view
+    //
+    //  Pushing a value onto the end of a sub-array will overwrite padding.
+    //  If there is no more padding, then the sub-array length will be extended by adding padding.
+    //  This will result in all subsequent sub-arrays in _data_view being shifted to the right.
+    //
+    //  # Deleting in _data_view
+    //
+    //  Deleting a value in a sub-array will only shift the data in the sub-array.
+    //  Padding is added to the end of the sub-array.
+    //
+    //  Deleting a whole sub-array will shift all subsequent sub-arrays in _data_view to the left.
+    //  The size of the shift is equal to the length of the sub-arry being deleted.
+    //  The index in _idx_view and _len_view are both set to 0.
+    //
     // static
     private static BUFF_START_SIZE = 1024;
     private static BUFF_STEP_SIZE = 1024;
@@ -225,36 +224,96 @@ export class Uint32ArrD2Irreg {
         this._sub_arr_len_view[idx0] = 0;
     }
     /**
-     * Set a sub-array to be undefined.
+     * Set the value in the array.
+     */
+    private _arrSetVal(idx0: number, idx1: number, val: number): void {
+        const idx2: number = this._sub_arr_idx_view[idx0] + idx1;
+        if (val === undefined) {
+            this._data_view[idx2] = 1;
+        } else if (val === null) {
+            this._data_view[idx2] = 2;
+        } else {
+            this._data_view[idx2] = val + 3;
+        }
+    }
+    /**
+     * Get the value in the array.
+     */
+    private _arrGetVal(idx0: number, idx1: number): number {
+        const idx2: number = this._sub_arr_idx_view[idx0] + idx1;
+        if (this._data_view[idx2] === 0) {
+            return undefined; // empty
+        } else if (this._data_view[idx2] === 1) {
+            return undefined;
+        } else if (this._data_view[idx2] === 2) {
+            return null;
+        } else {
+            return this._data_view[idx2] - 3;
+        }
+    }
+    /**
+     * Encode to internal representation.
+     */
+    private _encodeVal(val: number): number {
+        if (val === undefined) {
+           return 1;
+        } else if (val === null) {
+            return 2;
+        } else {
+            return val + 3;
+        }
+    }
+    /**
+     * Set a sub-array contents.
      */
     private _arrSetData(idx0: number, arr: number[]): void {
         if (arr === undefined) {
             // update len for the last arr, set undefined
             this._sub_arr_len_view[idx0] = 0;
         } else {
+            const encoded_arr: number[] = [];
+            for (const val of arr) {
+                if (val === undefined) {
+                    encoded_arr.push(1);
+                } else if (val === null) {
+                    encoded_arr.push(2);
+                } else {
+                    encoded_arr.push(val + 3);
+                }
+            }
             // set the data for the last arr
-            this._data_view.set(arr, this._sub_arr_idx_view[idx0]);
+            this._data_view.set(encoded_arr, this._sub_arr_idx_view[idx0]);
             // update len for the last arr
-            this._sub_arr_len_view[idx0] = arr.length + 1;
+            this._sub_arr_len_view[idx0] = encoded_arr.length + 1;
         }
+    }
+    /**
+     * Get a sub-array contents.
+     */
+    private _arrGetData(idx0: number): number[] {
+        if (this._sub_arr_len_view[idx0] === 0) { return undefined; }
+        if (this._sub_arr_len_view[idx0] === 1) { return []; }
+        // create arr of data
+        const arr: number[] = new Array();
+        const idx2_start: number = this._arrStart(idx0);
+        const idx2_end: number = this._arrEnd(idx0);
+        for (let idx2 = idx2_start; idx2 <= idx2_end; idx2++) {
+            const val: number = this._data_view[idx2];
+            if (val === 1) {
+                arr.push(undefined);
+            } else if (val === 2) {
+                arr.push(null);
+            } else {
+                arr.push(val - 3);
+            }
+        }
+        return arr;
     }
     /**
      * Return true if this sub-array is the last one.
      */
     private _isArrLast(idx0: number): boolean {
         return idx0 === this._arr_len - 1;
-    }
-    /**
-     * Return true if this array is undefined
-     */
-    private _isArrUndef(idx0: number): boolean {
-        return this._sub_arr_len_view[idx0] === 0;
-    }
-    /**
-     * Return true if this array is not undefined, but has len = 0, i.e. []
-     */
-    private _isArrEmpty(idx0: number): boolean {
-        return this._sub_arr_len_view[idx0] === 1;
     }
     /**
      * Get the index of the first element in the array.
@@ -370,18 +429,8 @@ export class Uint32ArrD2Irreg {
     public getArr(idx0: number): number[] {
         if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
         // console.log("GET")
-        // special cases
-        if (this._isArrUndef(idx0)) { return undefined; }
-        if (this._isArrEmpty(idx0)) { return []; }
-        // create arr of data
-        const arr: number[] = new Array();
-        const idx2_start: number = this._arrStart(idx0);
-        const idx2_end: number = this._arrEnd(idx0);
-        for (let idx2 = idx2_start; idx2 <= idx2_end; idx2++) {
-            arr.push(this._data_view[idx2]);
-        }
         // return arr of data
-        return arr;
+        return this._arrGetData(idx0);
     }
     /**
      * Inserts a sub-array.
@@ -534,10 +583,8 @@ export class Uint32ArrD2Irreg {
         if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
         const len: number = this._arrLen(idx0);
         if (idx1 >= len) { throw new Error('Error: Index 1 out of bounds.'); }
-        // get index for _data_view array
-        const idx2: number = this._getDataArrIdx(idx0, idx1);
         // set the value
-        this._data_view[idx2] = val;
+        this._arrSetVal(idx0, idx1, val);
     }
     /**
      * Gets a value from the array of arrays.
@@ -550,10 +597,8 @@ export class Uint32ArrD2Irreg {
         if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
         const len: number = this._arrLen(idx0);
         if (idx1 >= len) { throw new Error('Error: Index 1 out of bounds.'); }
-        // get index for _data_view array
-        const idx2: number = this._getDataArrIdx(idx0, idx1);
         // return the value
-        return this._data_view[idx2];
+        return this._arrGetVal(idx0, idx1);
     }
     /**
      * Pushes a value onto the end of a sub array in the array of arrays.
@@ -566,14 +611,13 @@ export class Uint32ArrD2Irreg {
         if (idx0 >= this._arr_len) { throw new Error('Error: Index 0 out of bounds.'); }
         // calc idx1 and idx2
         const idx1: number = this._arrLen(idx0);
-        const idx2: number = this._getDataArrIdx(idx0, idx1);
         // stretch?
         if (idx1 >= this._arrSpace(idx0)) {
             const req_space: number = idx1 + Uint32ArrD2Irreg.LEN_MULT;
             this._arrStretchSpace(idx0, req_space);
         }
         // set the value
-        this._data_view[idx2] = val;
+        this._arrSetVal(idx0, idx1, val);
         // set the new length
         this._arrSetLen(idx0, idx1 + 1);
         // return len
@@ -592,11 +636,11 @@ export class Uint32ArrD2Irreg {
         if (len === 0) { return undefined; }
         // calc idx1 and idx2
         const idx1: number = len - 1;
-        const idx2: number = this._getDataArrIdx(idx0, idx1);
+        const val: number = this._arrGetVal(idx0, idx1);
         // set new length
         this._arrSetLen(idx0, len - 1);
         // return the value
-        return this._data_view[idx2];
+        return val;
     }
     /**
      * Inserts a value at the specified index in a sub-array.
@@ -620,15 +664,14 @@ export class Uint32ArrD2Irreg {
             const req_space: number = len + 1 + Uint32ArrD2Irreg.LEN_MULT;
             this._arrStretchSpace(idx0, req_space);
         }
-        // calc index
+        // calc index and shift the data
         const idx2: number = this._getDataArrIdx(idx0, idx1);
-        // shift data
         const from: number = idx2 ;
         const to: number = idx2 + len;
         const target: number = idx2 + 1;
         this._data_view.copyWithin(target, from, to);
         // set value
-        this._data_view[idx2] = val;
+        this._arrSetVal(idx0, idx1, val);
         // set the new length
         this._arrSetLen(idx0, len + 1);
         // return length
@@ -646,9 +689,9 @@ export class Uint32ArrD2Irreg {
         // pop?
         if (idx1 === len - 1) { return this.popVal(idx0); }
         // get index for _data_view array
+        const val: number = this._arrGetVal(idx0, idx1);
+        // calc index and shift data
         const idx2: number = this._getDataArrIdx(idx0, idx1);
-        const val: number = this._data_view[idx2];
-        // shift data
         const from: number = idx2 + 1;
         const to: number = idx2 + len;
         const target: number = idx2;
@@ -661,44 +704,48 @@ export class Uint32ArrD2Irreg {
     /**
      * Returns true if the sub-array contains the number.
      * @param idx0
-     * @param num
+     * @param val
      * @returns True or false.
      */
-    public hasVal(idx0: number, num: number): boolean {
+    public hasVal(idx0: number, val: number): boolean {
         const idx2: number = this._sub_arr_idx_view[idx0];
-        return this._data_view.subarray(idx2, idx2 + this._arrLen(idx0)).includes(num);
+        const sub_arr: Uint32Array = this._data_view.subarray(idx2, idx2 + this._arrLen(idx0));
+        return sub_arr.includes(this._encodeVal(val));
     }
     /**
      * Returns the index of the first matching number in the sub-array, or -1.
      * @param idx0
-     * @param num
+     * @param val
      * @returns The index.
      */
-    public idxOfVal(idx0: number, num: number): number {
+    public idxOfVal(idx0: number, val: number): number {
         const idx2: number = this._sub_arr_idx_view[idx0];
-        return this._data_view.subarray(idx2, idx2 + this._arrLen(idx0)).indexOf(num);
+        const sub_arr: Uint32Array = this._data_view.subarray(idx2, idx2 + this._arrLen(idx0));
+        return sub_arr.indexOf(this._encodeVal(val));
     }
     /**
      * Adds a value to a sub-array if the sub-arrays does not already contain the value.
      * @param idx0
-     * @param num
+     * @param val
      * @returns The index of the value.
      */
-    public addValToSet(idx0: number, num: number): number {
+    public addValToSet(idx0: number, val: number): number {
         const idx2: number = this._sub_arr_idx_view[idx0];
-        const index: number = this._data_view.subarray(idx2, idx2 + this._arrLen(idx0)).indexOf(num);
+        const sub_arr: Uint32Array = this._data_view.subarray(idx2, idx2 + this._arrLen(idx0));
+        const index: number = sub_arr.indexOf( this._encodeVal(val) );
         if (index !== -1) { return index; }
-        return this.pushVal(idx0, num) - 1;
+        return this.pushVal(idx0, val) - 1;
     }
     /**
      * Removes a value from a sub-array if the sub-array contains the value.
      * @param idx0
-     * @param num
+     * @param val
      * @returns True if the value was removed, false otherwise..
      */
-    public remValFromSet(idx0: number, num: number): boolean {
+    public remValFromSet(idx0: number, val: number): boolean {
         const idx2: number = this._sub_arr_idx_view[idx0];
-        const index: number = this._data_view.subarray(idx2, idx2 + this._arrLen(idx0)).indexOf(num);
+        const sub_arr: Uint32Array = this._data_view.subarray(idx2, idx2 + this._arrLen(idx0));
+        const index: number = sub_arr.indexOf( this._encodeVal(val) );
         if (index === -1) { return false; }
         this.remVal(idx0, index);
         return true;

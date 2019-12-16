@@ -36,6 +36,21 @@ describe('Uint32ArrD1', () => {
         expect(a.toArr()).toEqual([undefined, undefined, undefined, undefined, undefined]);
     });
 
+    it(': setVal(), null', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(4, 444);
+        a.setVal(3, null);
+        expect(a.toArr()).toEqual([undefined, undefined, undefined, null, 444]);
+    });
+
+    it(': setVal(), null', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(4, 444);
+        a.setVal(4, null);
+        expect(a.toArr()).toEqual([undefined, undefined, undefined, undefined, null]);
+    });
+
+
     it(': insVal()', () => {
         const a = new Uint32ArrD1();
         a.setVal(4, 444);
