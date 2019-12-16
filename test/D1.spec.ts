@@ -219,4 +219,16 @@ describe('Uint32ArrD1', () => {
         expect(a.toArr()).toEqual([222, undefined, 333]);
     });
 
+    it(': clone()', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(0, 222);
+        a.setVal(1, undefined);
+        a.setVal(2, 333);
+        const b = a.clone();
+        b.setVal(2, 444);
+        expect(a.toArr()).toEqual([222, undefined, 333]);
+        expect(b.toArr()).toEqual([222, undefined, 444]);
+    });
+
+
 });

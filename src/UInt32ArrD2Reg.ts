@@ -311,6 +311,17 @@ export class Uint32ArrD2Reg {
     // --------------------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------------------
     /**
+     * Returns a deep clone of the array.
+     * @returns The Uint32ArrD2Reg clone.
+     */
+    public clone(): Uint32ArrD2Reg {
+        const new_arr: Uint32ArrD2Reg = new Uint32ArrD2Reg(this._sub_arr_len);
+        new_arr._data_view = new Uint32Array( this._data_view );
+        new_arr._arr_len = this._arr_len;
+        new_arr._sub_arr_len = this._sub_arr_len;
+        return new_arr;
+    }
+    /**
      * Returns the number of arrays in the array of arrays.
      * @returns The length.
      */

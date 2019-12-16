@@ -404,6 +404,18 @@ describe('Uint32ArrD2Irreg', () => {
         expect(a.toArr()).toEqual([undefined, [11, 33]]);
     });
 
+    it(': clone()', () => {
+        const a = new Uint32ArrD2Irreg();
+        a.setArr(1, [11, 22, 33]);
+        a.setArr(3, [100, 200]);
+        const b = a.clone();
+        b.setArr(3, [100, 200, 300]);
+        b.setVal(1, 1, 0);
+        expect(a.toArr()).toEqual([undefined, [11, 22, 33], undefined, [100, 200]]);
+        expect(b.toArr()).toEqual([undefined, [11, 0, 33], undefined, [100, 200, 300]]);
+    });
+
+
     // TODO Test purge
 
 });

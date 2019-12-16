@@ -230,6 +230,16 @@ export class Uint32ArrD1 {
     // --------------------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------------------
     /**
+     * Returns a deep clone of the array.
+     * @returns The Uint32ArrD1 clone.
+     */
+    public clone(): Uint32ArrD1 {
+        const new_arr: Uint32ArrD1 = new Uint32ArrD1();
+        new_arr._data_view = new Uint32Array( this._data_view );
+        new_arr._arr_len = this._arr_len;
+        return new_arr;
+    }
+    /**
      * Returns the number of values in the array.
      * @returns The length.
      */

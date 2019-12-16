@@ -709,6 +709,18 @@ export class Uint32ArrD2Irreg {
     // --------------------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------------------
     /**
+     * Returns a deep clone of the array.
+     * @returns The Uint32ArrD2Irreg clone.
+     */
+    public clone(): Uint32ArrD2Irreg {
+        const new_arr: Uint32ArrD2Irreg = new Uint32ArrD2Irreg();
+        new_arr._sub_arr_idx_view = new Uint32Array( this._sub_arr_idx_view );
+        new_arr._sub_arr_len_view = new Uint16Array( this._sub_arr_len_view );
+        new_arr._data_view = new Uint32Array( this._data_view );
+        new_arr._arr_len = this._arr_len;
+        return new_arr;
+    }
+    /**
      * Removes extra empty space in the data_view array.
      * This is an expensive operation and should be used sparingly.
      */
