@@ -32,7 +32,7 @@ export function test_typed() {
     const end = new Date().getTime();
     const time = end - start;
     console.log('D1 TYPED Speed = ', time);
-    console.log('D1 TYPED Num Props = ', Object.keys(arr).length);
+    // console.log('D1 TYPED Num Props = ', Object.keys(arr).length);
     console.log('D1 TYPED Num Objects = ', countObjs(arr));
     return arr;
 }
@@ -64,7 +64,7 @@ export function test_normal() {
     const end = new Date().getTime();
     const time = end - start;
     console.log('D1 NORMAL Speed = ', time);
-    console.log('D1 NORMAL Num Props = ', Object.keys(arr).length);
+    // console.log('D1 NORMAL Num Props = ', Object.keys(arr).length);
     console.log('D1 NORMAL Num Objects = ', countObjs(arr));
     return arr;
 }

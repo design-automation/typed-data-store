@@ -41,20 +41,20 @@ export function test_typed() {
         // get sub-array
         const idx0_1 = randInt(arr.len());
         const a = arr.getArr(idx0_1);
-        // insert sub-array
-        const idx0_2 = randInt(arr.len());
-        arr.insArr(idx0_2, randVarArr(1, MAX_SUB_ARRAY_LEN));
-        // remove sub-array
-        const idx0_3 = randInt(arr.len());
-        arr.remArr(idx0_3);
-        delete sub-array
+        // // insert sub-array
+        // const idx0_2 = randInt(arr.len());
+        // arr.insArr(idx0_2, randVarArr(1, MAX_SUB_ARRAY_LEN));
+        // // remove sub-array
+        // const idx0_3 = randInt(arr.len());
+        // arr.remArr(idx0_3);
+        // delete sub-array
         const idx0_4 = randInt(arr.len());
         arr.delArr(idx0_4);
     }
     const end = new Date().getTime();
     const time = end - start;
     console.log('D2 IRREG TYPED Speed = ', time);
-    console.log('D2 IRREG TYPED Num Props = ', Object.keys(arr).length);
+    // console.log('D2 IRREG TYPED Num Props = ', Object.keys(arr).length);
     console.log('D2 IRREG TYPED Num Objects = ', countObjs(arr));
     return arr;
 }
@@ -107,7 +107,7 @@ export function test_normal() {
     const end = new Date().getTime();
     const time = end - start;
     console.log('D2 IRREG NORMAL Speed = ', time);
-    console.log('D2 IRREG NORMAL Props = ', Object.keys(arr).length);
+    // console.log('D2 IRREG NORMAL Props = ', Object.keys(arr).length);
     console.log('D2 IRREG NORMAL Num Objects = ', countObjs(arr));
     return arr;
 }

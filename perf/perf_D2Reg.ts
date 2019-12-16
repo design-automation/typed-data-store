@@ -41,7 +41,7 @@ export function test_typed() {
     const end = new Date().getTime();
     const time = end - start;
     console.log('D2 REG TYPED Speed = ', time);
-    console.log('D2 REG TYPED Num Props = ', Object.keys(arr).length);
+    // console.log('D2 REG TYPED Num Props = ', Object.keys(arr).length);
     console.log('D2 REG TYPED Num Objects = ', countObjs(arr));
     return arr;
 }
@@ -68,20 +68,20 @@ export function test_normal() {
         // get sub-array
         const idx0_1 = randInt(MAX_ARRAY_LEN);
         const a = arr[idx0_1];
-        // insert sub-array
-        const idx0_2 = randInt(arr.length);
-        arr.splice(idx0_2, 0, randFixArr(SUB_ARRAY_LEN));
-        // remove sub-array
-        const idx0_3 = randInt(arr.length);
-        arr.splice(idx0_3, 1);
-        delete sub-array
+        // // insert sub-array
+        // const idx0_2 = randInt(arr.length);
+        // arr.splice(idx0_2, 0, randFixArr(SUB_ARRAY_LEN));
+        // // remove sub-array
+        // const idx0_3 = randInt(arr.length);
+        // arr.splice(idx0_3, 1);
+        // delete sub-array
         const idx0_4 = randInt(arr.length);
         delete arr[idx0_4];
     }
     const end = new Date().getTime();
     const time = end - start;
     console.log('D2 REG NORMAL Speed = ', time);
-    console.log('D2 REG NORMAL Num Props = ', Object.keys(arr).length);
+    // console.log('D2 REG NORMAL Num Props = ', Object.keys(arr).length);
     console.log('D2 REG NORMAL Num Objects = ', countObjs(arr));
     return arr;
 }
