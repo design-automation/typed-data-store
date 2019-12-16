@@ -206,6 +206,7 @@ export class Uint32ArrD1 {
      * @returns True or false.
      */
     public hasVal(val: number): boolean {
+        if (val === undefined) { return this._data_view.includes(0); }
         return this._data_view.includes(val + 1);
     }
     /**
@@ -214,6 +215,7 @@ export class Uint32ArrD1 {
      * @returns The index, or -1.
      */
     public idxOfVal(val: number): number {
+        if (val === undefined) { return this._data_view.indexOf(0); }
         return this._data_view.indexOf(val + 1);
     }
     // --------------------------------------------------------------------------------------------
