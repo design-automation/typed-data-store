@@ -128,8 +128,14 @@ export class Uint32ArrD1 {
     public setValIf(idx: number, old_val: number, new_val: number): void {
         if (idx >= this._arr_len) { throw new Error('Error: Index out of bounds.'); }
         // set the value
-        if (this._data_view[idx] === old_val + 1) {
-            this._setVal(idx, new_val);
+        if (old_val === undefined) {
+            if (this._data_view[idx] === 0) {
+                this._setVal(idx, new_val);
+            }
+        } else {
+            if (this._data_view[idx] === old_val + 1) {
+                this._setVal(idx, new_val);
+            }
         }
     }
     /**

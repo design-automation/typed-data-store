@@ -182,4 +182,41 @@ describe('Uint32ArrD1', () => {
         a.setVal(2, 333);
         expect(a.idxOfVal(444)).toEqual(-1);
     });
+
+    it(': setIf() true', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(0, 222);
+        a.setVal(1, undefined);
+        a.setVal(2, 333);
+        a.setValIf(2, 333, 999);
+        expect(a.toArr()).toEqual([222, undefined, 999]);
+    });
+
+    it(': setIf() false', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(0, 222);
+        a.setVal(1, undefined);
+        a.setVal(2, 333);
+        a.setValIf(2, 444, 999);
+        expect(a.toArr()).toEqual([222, undefined, 333]);
+    });
+
+    it(': setIf() undef true', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(0, 222);
+        a.setVal(1, undefined);
+        a.setVal(2, 333);
+        a.setValIf(1, undefined, 999);
+        expect(a.toArr()).toEqual([222, 999, 333]);
+    });
+
+    it(': setIf() undef false', () => {
+        const a = new Uint32ArrD1();
+        a.setVal(0, 222);
+        a.setVal(1, undefined);
+        a.setVal(2, 333);
+        a.setValIf(0, undefined, 999);
+        expect(a.toArr()).toEqual([222, undefined, 333]);
+    });
+
 });
